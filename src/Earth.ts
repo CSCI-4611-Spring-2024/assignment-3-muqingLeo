@@ -15,6 +15,8 @@ export class Earth extends gfx.Node3
 
     public globeMode: boolean;
 
+    private rotationAngle: number;
+
     constructor()
     {
         // Call the superclass constructor
@@ -23,6 +25,8 @@ export class Earth extends gfx.Node3
         this.earthMesh = new gfx.MorphMesh3();
 
         this.globeMode = false;
+
+        this.rotationAngle = 0;
     }
 
     public initialize(): void
@@ -38,8 +42,22 @@ export class Earth extends gfx.Node3
         // This disables mipmapping, which makes the texture appear sharper
         this.earthMesh.material.texture.setMinFilter(true, false);   
 
+        // set the rotation angle to 23.5 for earth orbiting
+        //this.earthMesh.rotation.x = gfx.MathUtils.degreesToRadians(23.5);
+
         // Add the mesh as a child of this node
         this.add(this.earthMesh);
+    }
+
+    // helper function to convert latitude and longitude to a 3D Globe
+    public convertToGlobe(latitude: number, longitude: number): gfx.Vector3 {
+        const lat = gfx.MathUtils.degreesToRadians(latitude);
+        const lon = gfx.MathUtils.degreesToRadians(longitude);
+        const x = Math.cos(lat) * Math.cos(lon);
+        const y = Math.sin(lat);
+        const z = Math.cos(lat) * Math.sin(lon);
+
+        return new gfx.Vector3(x, y, z);
     }
 
 
@@ -55,41 +73,83 @@ export class Earth extends gfx.Node3
         // so they don't need to be member variables.
         const mapVertices: gfx.Vector3[] = [];
         const mapNormals: gfx.Vector3[] = [];
-
-
+        const indices: number[] = [];
+        const texCoords: gfx.Vector2[] = [];
 
         // Part 1: Creating the Flat Map Mesh
         // As a demonstration, this code creates a rectangle with two triangles.
         // Four vertices are defined for the corners in latitude and longitude. 
         // These values need to be converted to the coordinates for the flat map.
         // You should replace this code with a nested loop as described in the readme.
-        mapVertices.push(this.convertLatLongToPlane(-90, -180));
+
+        /*mapVertices.push(this.convertLatLongToPlane(-90, -180));
         mapVertices.push(this.convertLatLongToPlane(-90, 180));
         mapVertices.push(this.convertLatLongToPlane(90, 180));
-        mapVertices.push(this.convertLatLongToPlane(90, -180));
+        mapVertices.push(this.convertLatLongToPlane(90, -180));*/
 
         // The flat map normals are always directly outward towards the camera
+        /*
         mapNormals.push(new gfx.Vector3(0, 0, 1));
         mapNormals.push(new gfx.Vector3(0, 0, 1));
         mapNormals.push(new gfx.Vector3(0, 0, 1));
-        mapNormals.push(new gfx.Vector3(0, 0, 1));
+        mapNormals.push(new gfx.Vector3(0, 0, 1));*/
+
+        const Xmin = -Math.PI;
+        const Xmax = Math.PI;
+        const Ymin = -Math.PI/2;
+        const Ymax = Math.PI/2;
+        
+        const X_dist = (Xmax - Xmin) / (meshResolution-1); // X_dist means the distance between each X value
+        const Y_dist = (Ymax - Ymin) / (meshResolution-1);
+
+        for (let i = 0; i <= meshResolution; i++) {
+            for (let j = 0; j <= meshResolution; j++) {
+                const x = Xmin + j*X_dist;
+                const y = Ymin + i*Y_dist;
+                mapVertices.push(new gfx.Vector3(x, y, 0));
+                mapNormals.push(new gfx.Vector3(0, 0, 1));
+                texCoords.push(new gfx.Vector2(j / meshResolution, 1 - (i / meshResolution)));
+            }
+        }
 
         // Define indices into the array for the two triangles.
         // I recommend doing this in another nested loop that is completely separate
         // from the one you added above to define the vertices and normals.
-        const indices: number[] = [];
-        indices.push(0, 1, 2);
-        indices.push(0, 2, 3);
+        // const indices: number[] = [];
+        // indices.push(0, 1, 2);
+        // indices.push(0, 2, 3);
+        for (let i = 0; i < meshResolution; i++) {
+            for (let j = 0; j < meshResolution; j++) {
+                const topLeft = i*(meshResolution + 1) + j;
+                const topRight = topLeft + 1;
+                const bottomLeft = (i + 1) * (meshResolution + 1) + j;
+                const bottomRight = bottomLeft + 1;
 
+                // this will be the top_left triangle, aka first triangle
+                indices.push(topLeft, topRight, bottomLeft);
+                // this will be the bottom_right triangle, aka second triangle
+                indices.push(topRight, bottomRight, bottomLeft);
 
-        
+                //texCoords.push(new gfx.Vector2(i / meshResolution, 0));
+                //texCoords.push(new gfx.Vector2(1 - (j / meshResolution), 1));
+            }
+        }
+
+ 
         // Part 2: Texturing the Mesh
         // You should replace the example code with correct texture coordinates for the flat map.
-        const texCoords: number[] = [];
-        texCoords.push(0, 0);
-        texCoords.push(0, 0);
-        texCoords.push(0, 0);
-        texCoords.push(0, 0);
+        // const texCoords: number[] = [];
+        // texCoords.push(0, 0);
+        // texCoords.push(0, 0);
+        // texCoords.push(0, 0);
+        // texCoords.push(0, 0);
+        for (let i = 0; i <= meshResolution; i ++) {
+            for (let j = 0; j <= meshResolution; j++) {
+                const u = (j / meshResolution);
+                const v = (i / meshResolution);
+                texCoords.push(new gfx.Vector2(u, v));
+            }
+        }
 
 
 
@@ -110,7 +170,24 @@ export class Earth extends gfx.Node3
         // However, once you are confident the globe vertices and normals are correct, you
         // should to add them to the earth as morph targets using the appropriate functions.
         // You will also need to add code in the convertLatLongToSphere() method below.
-       
+        const globeVertices: gfx.Vector3[] = [];
+        const globeNormals: gfx.Vector3[] = [];
+
+        for (let i = 0; i <= meshResolution; i++) {
+            const lat = gfx.MathUtils.lerp(Ymin, Ymax, i / meshResolution);
+            for (let j = 0; j <= meshResolution; j++) {
+                const lon = gfx.MathUtils.lerp(Xmin, Xmax, j / meshResolution);
+
+                const vertex = this.convertLatLongToSphere(gfx.MathUtils.radiansToDegrees(lat), gfx.MathUtils.radiansToDegrees(lon));
+                globeVertices.push(vertex);
+
+                const normal = gfx.Vector3.normalize(vertex);
+                globeNormals.push(normal);
+            }
+        }
+
+        this.earthMesh.setMorphTargetVertices(globeVertices);
+        this.earthMesh.setMorphTargetNormals(globeNormals);
 
         
         // After the mesh geometry is updated, we need to recompute the wireframe.
@@ -127,7 +204,22 @@ export class Earth extends gfx.Node3
         // the user selects flat map or globe mode in the GUI.
         // You should use this boolean to control the morphing
         // of the earth mesh, as described in the readme.
-
+        const morphSpeed = 0.5;
+        if (this.globeMode) {
+            this.earthMesh.morphAlpha = Math.min(this.earthMesh.morphAlpha + morphSpeed * deltaTime, 1);
+        
+        }else {
+            this.earthMesh.morphAlpha = Math.max(this.earthMesh.morphAlpha - morphSpeed * deltaTime, 0);
+        }
+        // const tiltRotatingAngle = 23.5;
+        // const rotationSpeed = 0.9; // Corrected typo from "rotateionSpeed" to "rotationSpeed"
+        // if (this.globeMode) {
+        //     // Apply the tilt only when in globe mode
+        //     const rotationFactor = gfx.MathUtils.degreesToRadians(rotationSpeed * deltaTime);
+        //     this.earthMesh.rotation.y += rotationFactor;
+        // }else {
+        //     this.earthMesh.rotation.setEulerAngles(0, 0, 0);
+        // }
     }
 
 
@@ -141,17 +233,47 @@ export class Earth extends gfx.Node3
         // You will need to update this code to correctly calculate both the 
         // map and globe positions of the markers.
 
-        const mapPosition = new gfx.Vector3(Math.random()*6-3, Math.random()*4-2, 0);
-        const globePosition = new gfx.Vector3(Math.random()*6-3, Math.random()*4-2, 0);
+        // const mapPosition = new gfx.Vector3(Math.random()*6-3, Math.random()*4-2, 0);
+        // const globePosition = new gfx.Vector3(Math.random()*6-3, Math.random()*4-2, 0);
+        const mapPosition = this.convertLatLongToPlane(record.latitude, record.longitude);
+        const globePosition = this.convertLatLongToSphere(record.latitude, record.longitude);
 
         const earthquake = new EarthquakeMarker(mapPosition, globePosition, record, duration);
 
         // Global adjustment to reduce the size. You should probably update the
         // appearance of the earthquake marker in a more meaningful way. 
-        earthquake.scale.set(0.5, 0.5, 0.5);
+        // earthquake.scale.set(0.5, 0.5, 0.5);
+        const scaleFactor = this.scaleEarthquake(record.magnitude);
+        earthquake.scale.set(scaleFactor, scaleFactor, scaleFactor);
 
+        // set the colors of earthquakes
+        const color = this.colorEarthquake(record.magnitude);
+        earthquake.material.setColor(color);
         // Uncomment this line of code to add the earthquake markers to the scene
-        //this.add(earthquake);
+        this.add(earthquake);
+    }
+
+    private scaleEarthquake(magnitude: number) : number {
+        const minScale = 0.05;
+        const maxScale = 0.3;
+
+        const minMagnitude = 3.0;
+        const maxMagnitude = 9.9; // we assume that no earthquake will have a magnitude of 10.0
+
+        const clampedMagnitude = Math.max(minMagnitude, Math.min(maxMagnitude, magnitude));
+        return minScale + (maxScale - minScale) * ((clampedMagnitude - minMagnitude) / (maxMagnitude - minMagnitude));
+
+    }
+
+    private colorEarthquake(magnitude: number) : gfx.Color {
+        const minColor = new gfx.Color(1, 1, 0);
+        const maxColor = new gfx.Color(1, 0, 0);
+
+        const minMagnitude = 3.0;
+        const maxMagnitude = 9.9;
+
+        const clampedMagnitude = Math.max(minMagnitude, Math.min(maxMagnitude, magnitude));
+        return gfx.Color.lerp(minColor, maxColor, (clampedMagnitude - minMagnitude) / (maxMagnitude - minMagnitude));
     }
 
 
@@ -177,6 +299,8 @@ export class Earth extends gfx.Node3
                     // If you have correctly computed the flat map and globe positions
                     // for each earthquake marker in part 5, then you can simply lerp
                     // between them using the same alpha as the earth mesh.
+                    const interpolatedPosition = gfx.Vector3.lerp((quake as EarthquakeMarker).mapPosition, (quake as EarthquakeMarker).globePosition, this.earthMesh.morphAlpha);
+                    quake.position.copy(interpolatedPosition);
 
                 }
             }
@@ -201,8 +325,14 @@ export class Earth extends gfx.Node3
         // Part 3: Creating the Globe Mesh
         // Add code here to correctly compute the 3D sphere position
         // based on latitude and longitude.
+        const lat = gfx.MathUtils.degreesToRadians(latitude);
+        const lon = gfx.MathUtils.degreesToRadians(longitude);
 
-        return new gfx.Vector3();
+        const x = Math.cos(lat) * Math.cos(lon);
+        const y = Math.sin(lat);
+        const z = Math.cos(lat) * Math.cos(lon);
+
+        return new gfx.Vector3(x, y, z);
     }
 
 
