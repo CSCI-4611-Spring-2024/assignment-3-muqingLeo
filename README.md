@@ -7,7 +7,8 @@ You should fill out the following information before submission:
 
 1. **Third Party Assets**. List the name and source of any third party assets that you added, such as models, images, sounds, or any other content used that was not solely written by you. 
 
-   `earth rotation functionality: I tried to look up online in order to find a brief guide of how to make the globe rotate, however the suggested approach didn't work since my earth simply rotates as an oval. source cna be found here https://stackoverflow.com/questions/11060734/how-to-rotate-a-3d-object-on-axis-three-js`
+   `earth rotation functionality: I tried to look up online in order to find a brief guide of how to make the globe rotate, however the suggested approach didn't work since my earth simply rotates as an oval. source cna be found here https://stackoverflow.com/questions/11060734/how-to-rotate-a-3d-object-on-axis-three-js`  
+   `helped by TA while implementing normals for the Globe Mesh`
 
 2. **Wizard Bonus Functionality**. If you completed the wizard bonus challenge, then please provide a brief description along with any instructions for the person grading your assignment.
 

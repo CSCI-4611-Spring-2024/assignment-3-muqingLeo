@@ -191,8 +191,12 @@ export class Earth extends gfx.Node3
                 const vertex = this.convertLatLongToSphere(gfx.MathUtils.radiansToDegrees(lat), gfx.MathUtils.radiansToDegrees(lon));
                 globeVertices.push(vertex);
 
-                const normal = gfx.Vector3.normalize(vertex);
-                globeNormals.push(normal);
+                // const normal = gfx.Vector3.normalize(vertex);
+                const normX = Math.cos(lat) * Math.cos(lon);
+                const normY = Math.sin(lat);
+                const normZ = Math.cos(lat) * Math.sin(lon);
+                const globe_normal = new gfx.Vector3(normX, normY, -normZ);
+                globeNormals.push(globe_normal);
             }
         }
 
@@ -203,6 +207,11 @@ export class Earth extends gfx.Node3
         // After the mesh geometry is updated, we need to recompute the wireframe.
         // This is only necessary for debugging in the wireframe display mode.
         this.earthMesh.material.updateWireframeBuffer(this.earthMesh);
+    }
+
+    public rotateVector(vector: gfx.Vector3, axis:gfx.Vector3, angle:number) : gfx.Vector3 {
+        const quaternion = gfx.Quaternion.makeAxisAngle(axis, angle);
+        return quaternion.rotate(vector);
     }
 
 
@@ -220,8 +229,8 @@ export class Earth extends gfx.Node3
             this.earthMesh.morphAlpha = Math.min(this.earthMesh.morphAlpha + morphSpeed * deltaTime, 1);
             
             const angleInRadians = gfx.MathUtils.degreesToRadians(tiltAngle);
-            const axis = new gfx.Vector3(0, 1, 0);
-            this.earthMesh.rotation.setAxisAngle(axis, 0);
+            // const axis = new gfx.Vector3(0, 1, 0);
+            // this.earthMesh.rotation.setAxisAngle(axis, 0);
 
         }else {
             this.earthMesh.morphAlpha = Math.max(this.earthMesh.morphAlpha - morphSpeed * deltaTime, 0);
