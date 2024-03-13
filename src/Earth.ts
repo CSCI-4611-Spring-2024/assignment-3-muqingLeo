@@ -99,7 +99,9 @@ export class Earth extends gfx.Node3
         const Ymin = -Math.PI/2;
         const Ymax = Math.PI/2;
         
-        const X_dist = (Xmax - Xmin) / (meshResolution-1); // X_dist means the distance between each X value
+        // X_dist means the distance between each X value
+        const X_dist = (Xmax - Xmin) / (meshResolution-1);
+        // Y_dist means the distance between each Y value
         const Y_dist = (Ymax - Ymin) / (meshResolution-1);
 
         for (let i = 0; i <= meshResolution; i++) {
@@ -176,6 +178,7 @@ export class Earth extends gfx.Node3
         for (let i = 0; i <= meshResolution; i++) {
             const lat = gfx.MathUtils.lerp(Ymin, Ymax, i / meshResolution);
             for (let j = 0; j <= meshResolution; j++) {
+
                 const lon = gfx.MathUtils.lerp(Xmin, Xmax, j / meshResolution);
 
                 const vertex = this.convertLatLongToSphere(gfx.MathUtils.radiansToDegrees(lat), gfx.MathUtils.radiansToDegrees(lon));
@@ -211,7 +214,8 @@ export class Earth extends gfx.Node3
         }else {
             this.earthMesh.morphAlpha = Math.max(this.earthMesh.morphAlpha - morphSpeed * deltaTime, 0);
         }
-        // const tiltRotatingAngle = 23.5;
+        // tried to add spinning, failed to work as my earth rotates in the shape of an oval 
+        // const tiltRotatingAngle = 23.4;
         // const rotationSpeed = 0.9; // Corrected typo from "rotateionSpeed" to "rotationSpeed"
         // if (this.globeMode) {
         //     // Apply the tilt only when in globe mode
@@ -255,25 +259,34 @@ export class Earth extends gfx.Node3
 
     private scaleEarthquake(magnitude: number) : number {
         const minScale = 0.05;
-        const maxScale = 0.3;
+        const maxScale = 0.35;
 
         const minMagnitude = 3.0;
         const maxMagnitude = 9.9; // we assume that no earthquake will have a magnitude of 10.0
 
-        const clampedMagnitude = Math.max(minMagnitude, Math.min(maxMagnitude, magnitude));
-        return minScale + (maxScale - minScale) * ((clampedMagnitude - minMagnitude) / (maxMagnitude - minMagnitude));
+        const clampedMagnituderange = Math.max(minMagnitude, Math.min(maxMagnitude, magnitude));
+        return minScale + (maxScale - minScale) * ((clampedMagnituderange - minMagnitude) / (maxMagnitude - minMagnitude));
 
     }
 
     private colorEarthquake(magnitude: number) : gfx.Color {
-        const minColor = new gfx.Color(1, 1, 0);
+        // color range from Green to Red to produce stronger contrast for the viewer
+        const minColor = new gfx.Color(0, 1, 0);
         const maxColor = new gfx.Color(1, 0, 0);
 
         const minMagnitude = 3.0;
         const maxMagnitude = 9.9;
 
-        const clampedMagnitude = Math.max(minMagnitude, Math.min(maxMagnitude, magnitude));
-        return gfx.Color.lerp(minColor, maxColor, (clampedMagnitude - minMagnitude) / (maxMagnitude - minMagnitude));
+        const clampedMagnituderange = Math.max(minMagnitude, Math.min(maxMagnitude, magnitude));
+
+        const color_index = (clampedMagnituderange - minMagnitude) / (maxMagnitude - minMagnitude);
+
+        const R = minColor.r + (maxColor.r - minColor.r) * color_index;
+        const G = minColor.g + (maxColor.g - minColor.g) * color_index;
+        const B = minColor.b + (maxColor.b - minColor.b) * color_index;
+
+        return new gfx.Color(R, G, B);
+
     }
 
 
@@ -299,7 +312,9 @@ export class Earth extends gfx.Node3
                     // If you have correctly computed the flat map and globe positions
                     // for each earthquake marker in part 5, then you can simply lerp
                     // between them using the same alpha as the earth mesh.
-                    const interpolatedPosition = gfx.Vector3.lerp((quake as EarthquakeMarker).mapPosition, (quake as EarthquakeMarker).globePosition, this.earthMesh.morphAlpha);
+                    const interpolatedPosition = gfx.Vector3.lerp((quake as EarthquakeMarker).mapPosition, 
+                    (quake as EarthquakeMarker).globePosition, this.earthMesh.morphAlpha);
+
                     quake.position.copy(interpolatedPosition);
 
                 }
