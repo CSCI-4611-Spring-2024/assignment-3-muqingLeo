@@ -63,4 +63,15 @@ export class EarthquakeMarker extends gfx.Mesh3
     {
         return gfx.MathUtils.clamp(Math.abs(currentTime/1000 - this.startTime/1000) / this.duration, 0, 1);
     }
+
+    public updatePos(earthrotation: gfx.Quaternion, globeMode: boolean): void {
+        const goalPos = globeMode ? this.globePosition : this.mapPosition;
+    
+        if (globeMode) {
+            const rotatedPosition = earthrotation.rotate(goalPos);
+            this.position.set(rotatedPosition.x, rotatedPosition.y, rotatedPosition.z);
+        } else {
+            this.position.copy(goalPos);
+        }
+    }
 }

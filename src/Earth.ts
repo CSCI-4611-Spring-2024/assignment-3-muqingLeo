@@ -100,17 +100,28 @@ export class Earth extends gfx.Node3
         const Ymax = Math.PI/2;
         
         // X_dist means the distance between each X value
-        const X_dist = (Xmax - Xmin) / (meshResolution-1);
+        const X_dist = (Xmax - Xmin) / (meshResolution);
         // Y_dist means the distance between each Y value
-        const Y_dist = (Ymax - Ymin) / (meshResolution-1);
+        const Y_dist = (Ymax - Ymin) / (meshResolution);
 
         for (let i = 0; i <= meshResolution; i++) {
+            let x, y;
+            if (i == meshResolution) {
+                y = Ymax;
+            } else {
+                y = Ymin + i * Y_dist;
+            }
             for (let j = 0; j <= meshResolution; j++) {
-                const x = Xmin + j*X_dist;
-                const y = Ymin + i*Y_dist;
+        
+                // Adjust the last vertex on the right side to match the first on the left
+                if (j == meshResolution) {
+                    x = Xmax;
+                } else {
+                    x = Xmin + j * X_dist;
+                }
+                
                 mapVertices.push(new gfx.Vector3(x, y, 0));
                 mapNormals.push(new gfx.Vector3(0, 0, 1));
-                texCoords.push(new gfx.Vector2(j / meshResolution, 1 - (i / meshResolution)));
             }
         }
 
@@ -131,9 +142,6 @@ export class Earth extends gfx.Node3
                 indices.push(topLeft, topRight, bottomLeft);
                 // this will be the bottom_right triangle, aka second triangle
                 indices.push(topRight, bottomRight, bottomLeft);
-
-                //texCoords.push(new gfx.Vector2(i / meshResolution, 0));
-                //texCoords.push(new gfx.Vector2(1 - (j / meshResolution), 1));
             }
         }
 
@@ -148,11 +156,10 @@ export class Earth extends gfx.Node3
         for (let i = 0; i <= meshResolution; i ++) {
             for (let j = 0; j <= meshResolution; j++) {
                 const u = (j / meshResolution);
-                const v = (i / meshResolution);
+                const v = -(i / meshResolution);
                 texCoords.push(new gfx.Vector2(u, v));
             }
         }
-
 
 
         // Set the flat map mesh data. This functions, which are part of the Mesh3 class, copy
@@ -208,9 +215,14 @@ export class Earth extends gfx.Node3
         // You should use this boolean to control the morphing
         // of the earth mesh, as described in the readme.
         const morphSpeed = 0.5;
+        const tiltAngle = 23.4;
         if (this.globeMode) {
             this.earthMesh.morphAlpha = Math.min(this.earthMesh.morphAlpha + morphSpeed * deltaTime, 1);
-        
+            
+            const angleInRadians = gfx.MathUtils.degreesToRadians(tiltAngle);
+            const axis = new gfx.Vector3(0, 1, 0);
+            this.earthMesh.rotation.setAxisAngle(axis, 0);
+
         }else {
             this.earthMesh.morphAlpha = Math.max(this.earthMesh.morphAlpha - morphSpeed * deltaTime, 0);
         }

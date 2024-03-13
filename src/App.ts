@@ -52,6 +52,7 @@ export class App extends gfx.GfxApp
     createScene(): void 
     {
         // Setup camera
+  
         this.camera.setPerspectiveCamera(60, 2, 0.1, 50)
         this.camera.position.set(0, 0, 3.25);
         this.camera.lookAt(gfx.Vector3.ZERO);
